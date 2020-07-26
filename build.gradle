@@ -1,0 +1,24 @@
+plugins {
+    id 'java'
+}
+
+group 'ru.patay'
+version '1.0-SNAPSHOT'
+
+task fatJar(type: Jar) {
+    manifest { attributes 'Main-Class': "ru.patay.govnobot.Main" }
+    from { configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) } }
+    with jar
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'com.discord4j:discord4j-core:3.1.0.RC4'
+    implementation 'mysql:mysql-connector-java:8.0.21'
+    implementation 'org.hibernate:hibernate-core:5.4.18.Final'
+    implementation 'org.apache.logging.log4j:log4j-api:2.13.3'
+    implementation 'org.apache.logging.log4j:log4j-core:2.13.3'
+}
