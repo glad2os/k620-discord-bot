@@ -8,7 +8,7 @@ import discord4j.core.object.entity.User;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import reactor.core.publisher.Mono;
-import ru.patay.govnobot.RoleDao;
+import ru.patay.govnobot.dao.RoleDao;
 import ru.patay.govnobot.entities.Role;
 
 import java.util.ArrayList;

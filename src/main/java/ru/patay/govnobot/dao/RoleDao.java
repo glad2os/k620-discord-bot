@@ -1,4 +1,4 @@
-package ru.patay.govnobot;
+package ru.patay.govnobot.dao;
 
 import ru.patay.govnobot.entities.Role;
 import ru.patay.govnobot.utils.HibernateSessionFactoryUtil;
