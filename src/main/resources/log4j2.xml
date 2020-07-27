@@ -18,19 +18,29 @@
                 </pattern>>
             </PatternLayout>
         </File>
+        <File name="File-Log" fileName="govnobot.log" bufferedIO="false">
+            <PatternLayout>
+                <pattern>
+                    [%5level] (%t) %msg%n
+                </pattern>>
+            </PatternLayout>
+        </File>
     </Appenders>
     <Loggers>
         <Logger name="org.hibernate" level="info" additivity="false">
             <AppenderRef ref="Console-Appender"/>
+            <AppenderRef ref="File-Log"/>
         </Logger>
         <Logger name="com.discord4j" level="info" additivity="false">
             <AppenderRef ref="Console-Appender"/>
+            <AppenderRef ref="File-Log"/>
         </Logger>
-        <Logger name="ru.patay.govnobot.commands" level="info" additivity="false">
+        <Logger name="ru.patay.govnobot.handlers" level="info" additivity="false">
             <AppenderRef ref="File-Audit"/>
         </Logger>
         <Root level="info">
             <AppenderRef ref="Console-Appender"/>
+            <AppenderRef ref="File-Log"/>
         </Root>
     </Loggers>
 </Configuration>
