@@ -23,7 +23,7 @@ public class HibernateSessionFactoryUtil {
                         .setProperty("hibernate.connection.url", "jdbc:mysql://localhost:3306/govnobot?serverTimezone=Europe/Moscow")
                         .setProperty("hibernate.connection.username", "root")
                         .setProperty("hibernate.connection.password", System.getenv("DB_PASSWORD"))
-                        .setProperty("hibernate.connection.pool_size", "1")
+                        .setProperty("hibernate.connection.pool_size", "2")
                         .setProperty("hibernate.current_session_context_class", "thread")
                         //.setProperty("hibernate.show_sql", "true") //todo: отключить
                         .setProperty("hibernate.dialect", "org.hibernate.dialect.MySQLDialect");

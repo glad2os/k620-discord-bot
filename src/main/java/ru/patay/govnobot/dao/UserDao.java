@@ -8,10 +8,12 @@ import ru.patay.govnobot.utils.HibernateSessionFactoryUtil;
 import java.util.List;
 import java.util.Optional;
 
-@SuppressWarnings("unchecked")
 public class UserDao {
     public Optional<User> findById(long id) {
-        return HibernateSessionFactoryUtil.getSessionFactory().openSession().byId(User.class).loadOptional(id);
+        Session session = HibernateSessionFactoryUtil.getSessionFactory().openSession();
+        Optional<User> user = session.byId(User.class).loadOptional(id);
+        session.close();
+        return user;
     }
 
     public void saveOrUpdate(User user) {
@@ -22,7 +24,19 @@ public class UserDao {
         session.close();
     }
 
-    public List<User> findAll() {
-        return (List<User>) HibernateSessionFactoryUtil.getSessionFactory().openSession().createQuery("From User").list();
+    public List<User> findNotNull() {
+        Session session = HibernateSessionFactoryUtil.getSessionFactory().openSession();
+        //noinspection unchecked
+        List<User> users = (List<User>) session.createQuery("From User Where timestamp Is Not Null").list();
+        session.close();
+        return users;
+    }
+
+    public void flushNotNull() {
+        Session session = HibernateSessionFactoryUtil.getSessionFactory().openSession();
+        Transaction transaction = session.beginTransaction();
+        session.createQuery("update User set timestamp = null where timestamp is not null").executeUpdate();
+        transaction.commit();
+        session.close();
     }
 }

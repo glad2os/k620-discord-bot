@@ -5,6 +5,8 @@ import ru.patay.govnobot.Config;
 import ru.patay.govnobot.dao.UserDao;
 import ru.patay.govnobot.entities.User;
 
+import java.util.List;
+
 public class UserLogic {
     private static final UserDao userDao = new UserDao();
 
@@ -24,6 +26,14 @@ public class UserLogic {
         } catch (RuntimeException e) {
             return false;
         }
-        return user.getMessages() >= nextLevel.getMessages() && user.getMinutes() >= nextLevel.getMinutes();
+        return user.getMessages() >= nextLevel.getMessages() && user.getTime() >= nextLevel.getTime();
+    }
+
+    public static List<User> findNotNull() {
+        return userDao.findNotNull();
+    }
+
+    public static void flushNotNull() {
+        userDao.flushNotNull();
     }
 }

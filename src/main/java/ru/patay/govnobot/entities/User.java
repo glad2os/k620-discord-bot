@@ -17,7 +17,7 @@ public class User {
 
     private int messages;
 
-    private int minutes;
+    private long time;
 
     @Column(nullable = true)
     private Long timestamp;
@@ -25,12 +25,22 @@ public class User {
     public User() {
     }
 
-    public User(long id, int level, int messages, int minutes) {
+    public User(long id, int level, int messages, long time) {
         this.id = id;
         this.level = level;
         this.messages = messages;
-        this.minutes = minutes;
+        this.time = time;
         this.timestamp = null;
+    }
+
+    public static User from(long id) {
+        User user = new User();
+        user.id = id;
+        user.level = 1;
+        user.messages = 0;
+        user.time = 0;
+        user.timestamp = null;
+        return user;
     }
 
     public long getId() {
@@ -69,12 +79,12 @@ public class User {
         this.messages = messages;
     }
 
-    public int getMinutes() {
-        return minutes;
+    public long getTime() {
+        return time;
     }
 
-    public void setMinutes(int minutes) {
-        this.minutes = minutes;
+    public void setTime(long ms) {
+        this.time = ms;
     }
 
     @Override
@@ -85,13 +95,13 @@ public class User {
         return id == user.id &&
                 level == user.level &&
                 messages == user.messages &&
-                minutes == user.minutes &&
+                time == user.time &&
                 Objects.equals(timestamp, user.timestamp);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, level, messages, minutes, timestamp);
+        return Objects.hash(id, level, messages, time, timestamp);
     }
 
     public void incLevel() {
@@ -102,17 +112,7 @@ public class User {
         this.messages++;
     }
 
-    public void appendMinutes(int minutes) {
-        this.minutes += minutes;
-    }
-
-    public static User from(long id) {
-        User user = new User();
-        user.id = id;
-        user.level = 1;
-        user.messages = 0;
-        user.minutes = 0;
-        user.timestamp = null;
-        return user;
+    public void appendTime(long ms) {
+        this.time += ms;
     }
 }
