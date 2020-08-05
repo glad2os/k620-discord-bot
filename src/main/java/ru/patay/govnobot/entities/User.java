@@ -1,12 +1,12 @@
 package ru.patay.govnobot.entities;
 
-import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.Table;
 import java.util.Objects;
 import java.util.Optional;
 
+@SuppressWarnings("unused")
 @Entity
 @Table(name = "users")
 public class User {
@@ -19,7 +19,6 @@ public class User {
 
     private long time;
 
-    @Column(nullable = true)
     private Long timestamp;
 
     public User() {

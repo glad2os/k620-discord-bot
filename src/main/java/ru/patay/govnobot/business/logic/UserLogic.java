@@ -22,7 +22,7 @@ public class UserLogic {
     public static boolean checkLevelUp(User user) {
         User nextLevel;
         try {
-            nextLevel = Config.levels[user.getLevel()];
+            nextLevel = Config.LEVELS[user.getLevel()];
         } catch (RuntimeException e) {
             return false;
         }

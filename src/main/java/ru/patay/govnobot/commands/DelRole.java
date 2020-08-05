@@ -11,14 +11,11 @@ import reactor.core.publisher.Mono;
 import ru.patay.govnobot.dao.RoleDao;
 import ru.patay.govnobot.entities.Role;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import static ru.patay.govnobot.Main.GUILD_ID;
+import static ru.patay.govnobot.Config.GUILD_ID;
 
 public class DelRole implements CommandInterface {
     private static final Logger log = LogManager.getLogger();
@@ -28,23 +25,23 @@ public class DelRole implements CommandInterface {
         this.roleDao = roleDao;
     }
 
-    @SuppressWarnings({"DuplicatedCode", "ConstantConditions", "OptionalGetWithoutIsPresent"})
+    @SuppressWarnings("DuplicatedCode")
     @Override
     public void exec(Message message) {
-        User author = message.getAuthor().get();
-        Set<Snowflake> ids = author.asMember(GUILD_ID).map(Member::getRoleIds).block();
+        User author = message.getAuthor().orElseThrow(NoSuchElementException::new);
+        Set<Snowflake> ids = Objects.requireNonNull(author.asMember(GUILD_ID).map(Member::getRoleIds).block());
         List<Role> roles = roleDao.findAll();
         int accessLevel = roles.stream()
                 .filter(role -> ids.contains(Snowflake.of(role.getId())))
                 .flatMapToInt(role -> IntStream.of(role.getAccessLevel()))
                 .max().orElse(0);
 
-        if (accessLevel < 1) throw new RuntimeException("Недостаточно прав");
+        if (accessLevel < 1) throw new RuntimeException("РќРµРґРѕСЃС‚Р°С‚РѕС‡РЅРѕ РїСЂР°РІ");
 
         Set<Snowflake> users = message.getUserMentionIds();
         Set<Snowflake> targetRoles = message.getRoleMentionIds();
-        if (users.isEmpty()) throw new RuntimeException("Требуется указать пользователей");
-        if (targetRoles.isEmpty()) throw new RuntimeException("Требуется указать роли");
+        if (users.isEmpty()) throw new RuntimeException("РўСЂРµР±СѓРµС‚СЃСЏ СѓРєР°Р·Р°С‚СЊ РїРѕР»СЊР·РѕРІР°С‚РµР»РµР№");
+        if (targetRoles.isEmpty()) throw new RuntimeException("РўСЂРµР±СѓРµС‚СЃСЏ СѓРєР°Р·Р°С‚СЊ СЂРѕР»Рё");
 
         HashSet<Long> _allowedRoles = new HashSet<>();
         HashSet<Long> _deniedRoles = new HashSet<>();
@@ -59,9 +56,9 @@ public class DelRole implements CommandInterface {
                 String.join(", ", _allowedRoles.stream().map(String::valueOf).collect(Collectors.toSet())),
                 String.join(", ", users.stream().map(Snowflake::asString).collect(Collectors.toSet())));
 
-        Guild guild = message.getGuild().block();
+        Guild guild = Objects.requireNonNull(message.getGuild().block());
         users.forEach(id -> {
-            Member member = guild.getMemberById(id).block();
+            Member member = Objects.requireNonNull(guild.getMemberById(id).block());
             _allowedRoles.stream().map(Snowflake::of).map(member::removeRole).forEach(Mono::block);
         });
 
@@ -74,6 +71,6 @@ public class DelRole implements CommandInterface {
             strings.add(String.format("You have no permissions to revoke following roles: <@&%s>",
                     String.join(">, <@&", _deniedRoles.stream().map(String::valueOf).collect(Collectors.toSet()))));
         String text = String.join("\n", strings);
-        message.getChannel().block().createMessage(text).block();
+        Objects.requireNonNull(message.getChannel().block()).createMessage(text).block();
     }
 }

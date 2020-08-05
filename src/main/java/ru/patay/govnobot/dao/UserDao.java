@@ -27,7 +27,7 @@ public class UserDao {
     public List<User> findNotNull() {
         Session session = HibernateSessionFactoryUtil.getSessionFactory().openSession();
         //noinspection unchecked
-        List<User> users = (List<User>) session.createQuery("From User Where timestamp Is Not Null").list();
+        List<User> users = session.createQuery("From User Where timestamp Is Not Null").list();
         session.close();
         return users;
     }

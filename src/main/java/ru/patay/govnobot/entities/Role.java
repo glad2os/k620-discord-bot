@@ -6,6 +6,7 @@ import javax.persistence.Id;
 import javax.persistence.Table;
 import java.util.Objects;
 
+@SuppressWarnings("unused")
 @Entity
 @Table(name = "roles")
 public class Role {

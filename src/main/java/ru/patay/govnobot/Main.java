@@ -25,19 +25,15 @@ import ru.patay.govnobot.commands.VoiceStateHandler;
 import ru.patay.govnobot.dao.RoleDao;
 
 import java.time.Instant;
+import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-public class Main {
+import static ru.patay.govnobot.Config.*;
 
-    public static final Snowflake GUILD_ID = Snowflake.of(381730844588638208L);
-    public static final Snowflake STREAM_CHANNEL = Snowflake.of(616984490719313930L);
+public class Main {
     private static final Logger log = LogManager.getLogger();
-    private static final Snowflake COMMAND_CHANNEL = Snowflake.of(708772058968096850L);
-    private static final Snowflake STAFF_CHANNEL = Snowflake.of(722064195977216071L);
-    private static final Snowflake MESSAGE_ID = Snowflake.of(737014451093635092L);
-    private static final Snowflake LVL1_ID = Snowflake.of(736461622456877106L);
 
     private static String format(long time) {
         long ms = time % 1000;
@@ -52,7 +48,6 @@ public class Main {
         return String.format("%dd %02d:%02d:%02d.%03d", d, h, m, s, ms);
     }
 
-    @SuppressWarnings({"ConstantConditions"})
     public static void main(String[] args) {
         RoleDao roleDao = new RoleDao();
 
@@ -62,15 +57,16 @@ public class Main {
         GatewayDiscordClient client = DiscordClientBuilder.create(System.getenv("TOKEN")).build().login().block();
         UserLogic.flushNotNull();
 
+        assert client != null;
         client.getEventDispatcher().on(ReadyEvent.class)
                 .subscribe(event -> {
                     User self = event.getSelf();
                     log.info("Logged in as {}#{}", self.getUsername(), self.getDiscriminator());
                     Guild guild = client.getGuildById(GUILD_ID).block();
-                    Snowflake afkId = guild.getAfkChannelId().get();
                     long ms = System.currentTimeMillis();
+                    assert guild != null;
                     guild.getChannels()
-                            .filter(chan -> chan.getType().equals(Channel.Type.GUILD_VOICE) && !chan.getId().equals(STREAM_CHANNEL) && !chan.getId().equals(afkId))
+                            .filter(chan -> chan.getType().equals(Channel.Type.GUILD_VOICE) && !IGNORE_VOICE_IDS.contains(chan.getId()))
                             .flatMap(chan -> ((VoiceChannel) chan).getVoiceStates())
                             .filter(vs -> !(vs.isMuted() || vs.isSelfMuted() || vs.isDeaf() || vs.isSelfDeaf()))
                             .map(VoiceState::getUserId).map(UserLogic::getById)
@@ -87,19 +83,19 @@ public class Main {
                         });
                     }));
 //                    MessageChannel channel = (MessageChannel) client.getChannelById(Snowflake.of(737004761324191834L)).block();
-//                    Message message = channel.createMessage("Я согласен с <#722401701209833494>. Получить роль <@&736461622456877106>").block();
+//                    Message message = channel.createMessage("РЇ СЃРѕРіР»Р°СЃРµРЅ СЃ <#722401701209833494>. РџРѕР»СѓС‡РёС‚СЊ СЂРѕР»СЊ <@&736461622456877106>").block();
 //                    message.addReaction(ReactionEmoji.unicode("\u2705")).block();
                 });
 
         client.getEventDispatcher().on(MessageCreateEvent.class)
-                .filter(event -> !event.getMessage().getChannelId().equals(COMMAND_CHANNEL))
+                .filter(event -> !IGNORE_TEXT_IDS.contains(event.getMessage().getChannelId()))
                 .doOnNext(event -> {
-                    Member member = event.getMember().get();
+                    Member member = event.getMember().orElseThrow(NoSuchElementException::new);
                     ru.patay.govnobot.entities.User user = UserLogic.getById(member.getId());
                     user.incMessages();
                     if (UserLogic.checkLevelUp(user)) {
-                        ru.patay.govnobot.entities.User levelOld = Config.levels[user.getLevel() - 1];
-                        ru.patay.govnobot.entities.User levelNew = Config.levels[user.getLevel()];
+                        ru.patay.govnobot.entities.User levelOld = LEVELS[user.getLevel() - 1];
+                        ru.patay.govnobot.entities.User levelNew = LEVELS[user.getLevel()];
                         user.incLevel();
                         member.removeRole(Snowflake.of(levelOld.getId())).subscribe();
                         member.addRole(Snowflake.of(levelNew.getId())).subscribe();
@@ -110,47 +106,46 @@ public class Main {
 
         client.getEventDispatcher().on(MessageCreateEvent.class)
                 .map(MessageCreateEvent::getMessage)
-                .filter(message -> message.getChannelId().equals(COMMAND_CHANNEL))
-                .filter(message -> message.getContent().startsWith("!addrole"))
-                .filter(message -> message.getAuthor().map(user -> !user.isBot()).orElse(false))
+                .filter(message -> CHANNEL_BOT_ID.equals(message.getChannelId())
+                        && message.getContent().startsWith("!addrole")
+                        && !message.getAuthor().orElseThrow(NoSuchElementException::new).isBot())
                 .doOnNext(addRole::exec)
                 .onErrorContinue((throwable, o) -> {
                     Message message = (Message) o;
                     MessageChannel channel = Objects.requireNonNull(message.getChannel().block());
                     String localizedMessage = throwable.getLocalizedMessage();
-                    channel.createMessage(localizedMessage).block(); // todo костыль
+                    channel.createMessage(localizedMessage).block(); // todo РєРѕСЃС‚С‹Р»СЊ
                 })
                 .subscribe();
 
         client.getEventDispatcher().on(MessageCreateEvent.class)
                 .map(MessageCreateEvent::getMessage)
-                .filter(message -> message.getChannelId().equals(COMMAND_CHANNEL))
-                .filter(message -> message.getContent().startsWith("!delrole"))
-                .filter(message -> message.getAuthor().map(user -> !user.isBot()).orElse(false))
+                .filter(message -> CHANNEL_BOT_ID.equals(message.getChannelId())
+                        && message.getContent().startsWith("!delrole")
+                        && !message.getAuthor().orElseThrow(NoSuchElementException::new).isBot())
                 .doOnNext(delRole::exec)
                 .onErrorContinue((throwable, o) -> {
                     Message message = (Message) o;
                     MessageChannel channel = Objects.requireNonNull(message.getChannel().block());
                     String localizedMessage = throwable.getLocalizedMessage();
-                    channel.createMessage(localizedMessage).block(); // todo костыль
+                    channel.createMessage(localizedMessage).block(); // todo РєРѕСЃС‚С‹Р»СЊ
                 })
                 .subscribe();
 
         client.getEventDispatcher().on(MessageCreateEvent.class)
                 .map(MessageCreateEvent::getMessage)
-                .filter(message -> message.getChannelId().equals(STAFF_CHANNEL))
-                .filter(message -> message.getContent().startsWith("!xp"))
+                .filter(message -> CHANNEL_STAFF_CHANNEL_ID.equals(message.getChannelId())
+                        && message.getContent().startsWith("!xp"))
                 .subscribe(message -> {
                     Set<Snowflake> userMentionIds = message.getUserMentionIds();
                     String text = userMentionIds.stream().map(UserLogic::getById).map(user ->
-//                            String.format("<@%d> Level: %d; Messages: %d; Time: %d", user.getId(), user.getLevel(), user.getMessages(), user.getTime() / 60000))
                             String.format("<@%d> Level: %d; Messages: %d; Time: %s", user.getId(), user.getLevel(), user.getMessages(), format(user.getTime())))
                             .collect(Collectors.joining("\n"));
 
                     message.getChannel().subscribe(mc -> mc.createEmbed(spec ->
                             spec.setColor(Color.DARK_GRAY)
-                                    .setAuthor(client.getSelf().block().getUsername(), "", client.getSelf().block().getAvatarUrl())
-                                    .setTitle("Информация:")
+                                    .setAuthor(Objects.requireNonNull(client.getSelf().block()).getUsername(), "", Objects.requireNonNull(client.getSelf().block()).getAvatarUrl())
+                                    .setTitle("РРЅС„РѕСЂРјР°С†РёСЏ:")
                                     .setDescription(text)
                                     .setTimestamp(Instant.now())
                     ).block());
@@ -160,13 +155,11 @@ public class Main {
                 .subscribe(VoiceStateHandler::exec);
 
         client.getEventDispatcher().on(ReactionAddEvent.class)
-                .filter(event -> event.getMessageId().equals(MESSAGE_ID)) // todo задать
+                .filter(event -> MESSAGE_ACCEPT_ID.equals(event.getMessageId()))
                 .flatMap(event -> event.getUser().flatMap(user -> user.asMember(event.getGuildId().orElseThrow(RuntimeException::new))))
-                .flatMap(member -> member.addRole(LVL1_ID))
+                .flatMap(member -> member.addRole(ROLE_LVL1_ID))
                 .subscribe();
 
         client.onDisconnect().block();
     }
 }
-
-

@@ -6,10 +6,10 @@ import ru.patay.govnobot.utils.HibernateSessionFactoryUtil;
 
 import java.util.List;
 
-@SuppressWarnings("unchecked")
 public class RoleDao {
     public List<Role> findAll() {
         Session session = HibernateSessionFactoryUtil.getSessionFactory().openSession();
+        //noinspection unchecked
         List<Role> roles = session.createQuery("From Role").list();
         session.close();
         return roles;

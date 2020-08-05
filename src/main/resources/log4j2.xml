@@ -27,18 +27,18 @@
         </File>
     </Appenders>
     <Loggers>
-        <Logger name="org.hibernate" level="info" additivity="false">
+        <Logger name="org.hibernate" level="debug" additivity="false">
             <AppenderRef ref="Console-Appender"/>
             <AppenderRef ref="File-Log"/>
         </Logger>
-        <Logger name="com.discord4j" level="info" additivity="false">
+        <Logger name="com.discord4j" level="debug" additivity="false">
             <AppenderRef ref="Console-Appender"/>
             <AppenderRef ref="File-Log"/>
         </Logger>
         <Logger name="ru.patay.govnobot.handlers" level="info" additivity="false">
             <AppenderRef ref="File-Audit"/>
         </Logger>
-        <Root level="info">
+        <Root level="debug">
             <AppenderRef ref="Console-Appender"/>
             <AppenderRef ref="File-Log"/>
         </Root>
