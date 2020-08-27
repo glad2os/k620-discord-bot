@@ -27,6 +27,7 @@ import ru.patay.govnobot.dao.RoleDao;
 import java.time.Instant;
 import java.util.NoSuchElementException;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -83,7 +84,7 @@ public class Main {
                         });
                     }));
 //                    MessageChannel channel = (MessageChannel) client.getChannelById(Snowflake.of(737004761324191834L)).block();
-//                    Message message = channel.createMessage("Я согласен с <#722401701209833494>. Получить роль <@&736461622456877106>").block();
+//                    Message message = channel.createMessage("? ???????? ? <#722401701209833494>. ???????? ???? <@&736461622456877106>").block();
 //                    message.addReaction(ReactionEmoji.unicode("\u2705")).block();
                 });
 
@@ -114,7 +115,7 @@ public class Main {
                     Message message = (Message) o;
                     MessageChannel channel = Objects.requireNonNull(message.getChannel().block());
                     String localizedMessage = throwable.getLocalizedMessage();
-                    channel.createMessage(localizedMessage).block(); // todo костыль
+                    channel.createMessage(localizedMessage).block(); // todo ???????
                 })
                 .subscribe();
 
@@ -128,7 +129,7 @@ public class Main {
                     Message message = (Message) o;
                     MessageChannel channel = Objects.requireNonNull(message.getChannel().block());
                     String localizedMessage = throwable.getLocalizedMessage();
-                    channel.createMessage(localizedMessage).block(); // todo костыль
+                    channel.createMessage(localizedMessage).block();
                 })
                 .subscribe();
 
@@ -159,6 +160,183 @@ public class Main {
                 .flatMap(event -> event.getUser().flatMap(user -> user.asMember(event.getGuildId().orElseThrow(RuntimeException::new))))
                 .flatMap(member -> member.addRole(ROLE_LVL1_ID))
                 .subscribe();
+
+        // ЛОГИРОВАНИЕ
+
+        MessageChannel voiceModLog = (MessageChannel) client.getChannelById(Snowflake.of(743042808570445844L)).block();
+        assert voiceModLog != null;
+
+        // leave channel
+        /*
+        client.getEventDispatcher().on(VoiceStateUpdateEvent.class)
+                .filter(vs -> !vs.getCurrent().getChannelId().isPresent())
+                .subscribe(voiceStateUpdateEvent -> {
+                    String text = String.format("<@%d> покинул комнату %s",
+                            voiceStateUpdateEvent.getCurrent().getUserId().asLong(),
+                            Objects.requireNonNull(voiceStateUpdateEvent.getOld().get().getChannel().block()).getName());
+
+                    voiceModLog.createEmbed(embedCreateSpec ->
+                            embedCreateSpec.setColor(Color.of(121, 68, 59))
+                                    .setAuthor(Objects.requireNonNull(client.getSelf().block()).getUsername(), "", Objects.requireNonNull(client.getSelf().block()).getAvatarUrl())
+                                    .setTitle("Информация:")
+                                    .setDescription(text)
+                                    .setTimestamp(Instant.now())
+                    ).block();
+                });
+
+        // connect channel
+        client.getEventDispatcher().on(VoiceStateUpdateEvent.class)
+                .filter(vs -> !(vs.getOld().isPresent()))
+                        .subscribe(vs -> {
+                            String text = String.format("<@%d> присоединился к %s", vs.getCurrent().getUserId().asLong(),
+                                    Objects.requireNonNull(vs.getCurrent().getChannel().block()).getName());
+
+                            voiceModLog.createEmbed(embedCreateSpec ->
+                                    embedCreateSpec.setColor(Color.of(60, 170, 60))
+                                            .setAuthor(Objects.requireNonNull(client.getSelf().block()).getUsername(), "", Objects.requireNonNull(client.getSelf().block()).getAvatarUrl())
+                                            .setTitle("Информация:")
+                                            .setDescription(text)
+                                            .setTimestamp(Instant.now())
+                            ).block();
+                        });
+
+        // server mute
+        client.getEventDispatcher().on(VoiceStateUpdateEvent.class)
+                .filter(vs -> vs.getCurrent().isDeaf() || vs.getCurrent().isMuted())
+                .filter(vs -> vs.getOld().isPresent() && vs.getCurrent().getChannelId().isPresent())
+                        .subscribe(vs -> {
+                    String text = String.format("<@%d> получил серверный мут находясь в  %s",
+                            vs.getCurrent().getUserId().asLong(),
+                            Objects.requireNonNull(vs.getCurrent().getChannel().block()).getName());
+
+                    voiceModLog.createEmbed(embedCreateSpec ->
+                            embedCreateSpec.setColor(Color.of(255, 0, 0))
+                                    .setAuthor(Objects.requireNonNull(client.getSelf().block()).getUsername(), "", Objects.requireNonNull(client.getSelf().block()).getAvatarUrl())
+                                    .setDescription(text)
+                                    .setTitle("Информация:")
+                                    .setTimestamp(Instant.now())).block();
+                });
+
+        // unmute server
+        client.getEventDispatcher().on(VoiceStateUpdateEvent.class)
+                .filter(vs -> !(vs.getCurrent().isDeaf() || vs.getCurrent().isMuted()) && (vs.getOld().get().isMuted() || vs.getOld().get().isDeaf()))
+                .subscribe(vs -> {
+                    String text = String.format("с <@%d> был снят серверный мут в %s",
+                            vs.getCurrent().getUserId().asLong(),
+                            Objects.requireNonNull(vs.getCurrent().getChannel().block()).getName());
+
+                    voiceModLog.createEmbed(embedCreateSpec ->
+                            embedCreateSpec.setColor(Color.of(27, 17, 22))
+                                    .setAuthor(Objects.requireNonNull(client.getSelf().block()).getUsername(), "", Objects.requireNonNull(client.getSelf().block()).getAvatarUrl())
+                                    .setDescription(text)
+                                    .setTitle("Информация:")
+                                    .setTimestamp(Instant.now())).block();
+                });
+
+        // change channel
+        //todo: fix
+//        client.getEventDispatcher().on(VoiceStateUpdateEvent.class)
+//                .filter(vs -> vs.getOld().isPresent() && vs.getCurrent().getChannelId().isPresent()
+//                )
+//                .subscribe(vs -> {
+//                    String text = String.format("<@%d> переместился из %s в %s",
+//                            vs.getCurrent().getUserId().asLong(),
+//                            Objects.requireNonNull(vs.getOld().get().getChannel().block()).getName(),
+//                            Objects.requireNonNull(vs.getCurrent().getChannel().block()).getName());
+//
+//                    voiceModLog.createEmbed(embedCreateSpec ->
+//                            embedCreateSpec.setColor(Color.of(209, 226, 49))
+//                                    .setAuthor(Objects.requireNonNull(client.getSelf().block()).getUsername(), "", Objects.requireNonNull(client.getSelf().block()).getAvatarUrl())
+//                                    .setDescription(text)
+//                                    .setTitle("Информация:")
+//                                    .setTimestamp(Instant.now())
+//                    ).block();
+//                });
+
+*/
+        client.getEventDispatcher().on(VoiceStateUpdateEvent.class)
+                .filter(vs ->
+                        !(vs.getCurrent().isSelfMuted() || vs.getCurrent().isSelfDeaf()
+                                || (vs.getOld().isPresent() && (vs.getOld().get().isSelfDeaf() || vs.getOld().get().isSelfMuted())
+                        ))
+                )
+                .subscribe(voiceStateUpdateEvent -> {
+
+                    //todo: разделить на 3 хендлера. Вынести отправку сообещения в void
+                    
+                    VoiceState current = voiceStateUpdateEvent.getCurrent();
+                    Optional<VoiceState> old = voiceStateUpdateEvent.getOld();
+
+                    if (!current.getChannelId().isPresent()) {
+
+                        String text = String.format("<@%d> покинул комнату %s",
+                                current.getUserId().asLong(),
+                                Objects.requireNonNull(old.get().getChannel().block()).getName());
+
+                        voiceModLog.createEmbed(embedCreateSpec ->
+                                embedCreateSpec.setColor(Color.of(121, 68, 59))
+                                        .setAuthor(Objects.requireNonNull(client.getSelf().block()).getUsername(), "", Objects.requireNonNull(client.getSelf().block()).getAvatarUrl())
+                                        .setTitle("Информация:")
+                                        .setDescription(text)
+                                        .setTimestamp(Instant.now())
+                        ).block();
+                        return;
+                    }
+
+                    if (!old.isPresent()) {
+                        String text = String.format("<@%d> присоединился к %s", current.getUserId().asLong(), Objects.requireNonNull(current.getChannel().block()).getName());
+
+                        voiceModLog.createEmbed(embedCreateSpec ->
+                                embedCreateSpec.setColor(Color.of(60, 170, 60))
+                                        .setAuthor(Objects.requireNonNull(client.getSelf().block()).getUsername(), "", Objects.requireNonNull(client.getSelf().block()).getAvatarUrl())
+                                        .setTitle("Информация:")
+                                        .setDescription(text)
+                                        .setTimestamp(Instant.now())
+                        ).block();
+                        return;
+                    }
+
+                    if (current.isDeaf() || current.isMuted()) {
+                        String text = String.format("<@%d> получил серверный мут находясь в  %s",
+                                current.getUserId().asLong(),
+                                Objects.requireNonNull(current.getChannel().block()).getName());
+
+                        voiceModLog.createEmbed(embedCreateSpec ->
+                                embedCreateSpec.setColor(Color.of(255, 0, 0))
+                                        .setAuthor(Objects.requireNonNull(client.getSelf().block()).getUsername(), "", Objects.requireNonNull(client.getSelf().block()).getAvatarUrl())
+                                        .setDescription(text)
+                                        .setTitle("Информация:")
+                                        .setTimestamp(Instant.now())).block();
+                        return;
+                    }
+
+                    if (!(current.isDeaf() || current.isMuted()) && (old.get().isMuted() || old.get().isDeaf())) {
+                        String text = String.format("с <@%d> был снят серверный мут в %s",
+                                current.getUserId().asLong(),
+                                Objects.requireNonNull(current.getChannel().block()).getName());
+
+                        voiceModLog.createEmbed(embedCreateSpec ->
+                                embedCreateSpec.setColor(Color.of(27, 17, 22))
+                                        .setAuthor(Objects.requireNonNull(client.getSelf().block()).getUsername(), "", Objects.requireNonNull(client.getSelf().block()).getAvatarUrl())
+                                        .setDescription(text)
+                                        .setTitle("Информация:")
+                                        .setTimestamp(Instant.now())).block();
+                        return;
+                    }
+
+                    String text = String.format("<@%d> переместился из %s в %s",
+                            current.getUserId().asLong(),
+                            Objects.requireNonNull(old.get().getChannel().block()).getName(),
+                            Objects.requireNonNull(current.getChannel().block()).getName());
+
+                    voiceModLog.createEmbed(embedCreateSpec ->
+                            embedCreateSpec.setColor(Color.of(209, 226, 49))
+                                    .setAuthor(Objects.requireNonNull(client.getSelf().block()).getUsername(), "", Objects.requireNonNull(client.getSelf().block()).getAvatarUrl())
+                                    .setDescription(text)
+                                    .setTitle("Информация:")
+                                    .setTimestamp(Instant.now())
+                    ).block();
+                });
 
         client.onDisconnect().block();
     }

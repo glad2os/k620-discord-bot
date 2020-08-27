@@ -16,7 +16,7 @@ public class Config {
 
     public static final List<Snowflake> IGNORE_VOICE_IDS = Arrays.asList(
             Snowflake.of(616984490719313930L), // Stream Limit
-            Snowflake.of(737489022628135002L), // Stream
+            Snowflake.of(737489022628135002L), // Stream Users
             Snowflake.of(736948549694128211L) // AFK
     );
 
@@ -26,7 +26,7 @@ public class Config {
 
     public static final User[] LEVELS = new User[]{
             new User(736461622456877106L, 1, 0, 0),
-            new User(736995556764680232L, 2, 150, 90 * 60000),
+            new User(736995556764680232L, 2, 15, 15 * 60000),
             new User(736995565774307368L, 3, 450, 360 * 60000),
             new User(736995568584491110L, 4, 750, 720 * 60000),
             new User(736995568840212651L, 5, 1500, 1440 * 60000),

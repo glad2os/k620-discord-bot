@@ -6,25 +6,29 @@
     <Appenders>
         <Console name="Console-Appender" target="SYSTEM_OUT">
             <PatternLayout>
-                <pattern>
-                    [%5level] (%t) %msg%n
-                </pattern>>
+                <pattern>%d{HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n</pattern>>
             </PatternLayout>
         </Console>
-        <File name="File-Audit" fileName="output.log" bufferedIO="false">
+        <RollingRandomAccessFile name="File-Audit" fileName="logs/audit.log" filePattern="logs/$${date:yyyy-MM}/audit-%d{yyyy-MM-dd}-%i.log.gz">
             <PatternLayout>
-                <pattern>
-                    %d{yyyy-MM-dd HH:mm:ss.SSS} %msg%n
-                </pattern>>
+                <Pattern>%d %m%n</Pattern>
             </PatternLayout>
-        </File>
-        <File name="File-Log" fileName="govnobot.log" bufferedIO="false">
+            <Policies>
+                <TimeBasedTriggeringPolicy/>
+                <SizeBasedTriggeringPolicy size="1 MB"/>
+            </Policies>
+            <DefaultRolloverStrategy max="10"/>
+        </RollingRandomAccessFile>
+        <RollingRandomAccessFile name="File-Log" fileName="logs/app.log" filePattern="logs/$${date:yyyy-MM}/app-%d{yyyy-MM-dd}-%i.log.gz">
             <PatternLayout>
-                <pattern>
-                    [%5level] (%t) %msg%n
-                </pattern>>
+                <Pattern>%d %p %c{1.} [%t] %m%n</Pattern>
             </PatternLayout>
-        </File>
+            <Policies>
+                <TimeBasedTriggeringPolicy/>
+                <SizeBasedTriggeringPolicy size="1 MB"/>
+            </Policies>
+            <DefaultRolloverStrategy max="10"/>
+        </RollingRandomAccessFile>
     </Appenders>
     <Loggers>
         <Logger name="org.hibernate" level="debug" additivity="false">
@@ -35,7 +39,7 @@
             <AppenderRef ref="Console-Appender"/>
             <AppenderRef ref="File-Log"/>
         </Logger>
-        <Logger name="ru.patay.govnobot.handlers" level="info" additivity="false">
+        <Logger name="ru.patay.govnobot.commands" level="info" additivity="false">
             <AppenderRef ref="File-Audit"/>
         </Logger>
         <Root level="debug">
