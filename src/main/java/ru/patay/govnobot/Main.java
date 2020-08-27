@@ -54,17 +54,15 @@ public class Main {
         AddRole addRole = new AddRole(roleDao);
         DelRole delRole = new DelRole(roleDao);
 
-        GatewayDiscordClient client = DiscordClientBuilder.create(System.getenv("TOKEN")).build().login().block();
+        GatewayDiscordClient client = DiscordClientBuilder.create(System.getenv("TOKEN")).build().login().blockOptional().orElseThrow(NoSuchElementException::new);
+        User self = client.getSelf().blockOptional().orElseThrow(NoSuchElementException::new);
         UserLogic.flushNotNull();
 
-        assert client != null;
         client.getEventDispatcher().on(ReadyEvent.class)
                 .subscribe(event -> {
-                    User self = event.getSelf();
                     log.info("Logged in as {}#{}", self.getUsername(), self.getDiscriminator());
-                    Guild guild = client.getGuildById(GUILD_ID).block();
+                    Guild guild = client.getGuildById(GUILD_ID).blockOptional().orElseThrow(NoSuchElementException::new);
                     long ms = System.currentTimeMillis();
-                    assert guild != null;
                     guild.getChannels()
                             .filter(chan -> chan.getType().equals(Channel.Type.GUILD_VOICE) && !IGNORE_VOICE_IDS.contains(chan.getId()))
                             .flatMap(chan -> ((VoiceChannel) chan).getVoiceStates())
@@ -83,7 +81,7 @@ public class Main {
                         });
                     }));
 //                    MessageChannel channel = (MessageChannel) client.getChannelById(Snowflake.of(737004761324191834L)).block();
-//                    Message message = channel.createMessage("Я согласен с <#722401701209833494>. Получить роль <@&736461622456877106>").block();
+//                    Message message = channel.createMessage("? ???????? ? <#722401701209833494>. ???????? ???? <@&736461622456877106>").block();
 //                    message.addReaction(ReactionEmoji.unicode("\u2705")).block();
                 });
 
@@ -112,9 +110,9 @@ public class Main {
                 .doOnNext(addRole::exec)
                 .onErrorContinue((throwable, o) -> {
                     Message message = (Message) o;
-                    MessageChannel channel = Objects.requireNonNull(message.getChannel().block());
+                    MessageChannel channel = message.getChannel().blockOptional().orElseThrow(NoSuchElementException::new);
                     String localizedMessage = throwable.getLocalizedMessage();
-                    channel.createMessage(localizedMessage).block(); // todo костыль
+                    channel.createMessage(localizedMessage).block(); // todo ???????
                 })
                 .subscribe();
 
@@ -126,9 +124,9 @@ public class Main {
                 .doOnNext(delRole::exec)
                 .onErrorContinue((throwable, o) -> {
                     Message message = (Message) o;
-                    MessageChannel channel = Objects.requireNonNull(message.getChannel().block());
+                    MessageChannel channel = message.getChannel().blockOptional().orElseThrow(NoSuchElementException::new);
                     String localizedMessage = throwable.getLocalizedMessage();
-                    channel.createMessage(localizedMessage).block(); // todo костыль
+                    channel.createMessage(localizedMessage).block();
                 })
                 .subscribe();
 
@@ -144,7 +142,7 @@ public class Main {
 
                     message.getChannel().subscribe(mc -> mc.createEmbed(spec ->
                             spec.setColor(Color.DARK_GRAY)
-                                    .setAuthor(Objects.requireNonNull(client.getSelf().block()).getUsername(), "", Objects.requireNonNull(client.getSelf().block()).getAvatarUrl())
+                                    .setAuthor(self.getUsername(), "", self.getAvatarUrl())
                                     .setTitle("Информация:")
                                     .setDescription(text)
                                     .setTimestamp(Instant.now())
@@ -156,9 +154,109 @@ public class Main {
 
         client.getEventDispatcher().on(ReactionAddEvent.class)
                 .filter(event -> MESSAGE_ACCEPT_ID.equals(event.getMessageId()))
-                .flatMap(event -> event.getUser().flatMap(user -> user.asMember(event.getGuildId().orElseThrow(RuntimeException::new))))
+                .flatMap(event -> event.getUser().flatMap(user -> user.asMember(event.getGuildId().orElseThrow(NoSuchElementException::new))))
                 .flatMap(member -> member.addRole(ROLE_LVL1_ID))
                 .subscribe();
+
+        // ЛОГИРОВАНИЕ
+
+        MessageChannel voiceModLog = (MessageChannel) client.getChannelById(Snowflake.of(736914982221905992L)).blockOptional().orElseThrow(NoSuchElementException::new);
+
+        // leave channel
+        client.getEventDispatcher().on(VoiceStateUpdateEvent.class)
+                .filter(vs -> !vs.getCurrent().getChannelId().isPresent())
+                .subscribe(voiceStateUpdateEvent -> {
+                    String text = String.format("<@%d> покинул комнату %s",
+                            voiceStateUpdateEvent.getCurrent().getUserId().asLong(),
+                            voiceStateUpdateEvent.getOld().get().getChannel().blockOptional().orElseThrow(NoSuchElementException::new).getName());
+
+                    voiceModLog.createEmbed(embedCreateSpec ->
+                            embedCreateSpec.setColor(Color.of(121, 68, 59))
+                                    .setAuthor(self.getUsername(), "", self.getAvatarUrl())
+                                    .setTitle("Информация:")
+                                    .setDescription(text)
+                                    .setTimestamp(Instant.now())
+                    ).block();
+                });
+
+        // connect channel
+        client.getEventDispatcher().on(VoiceStateUpdateEvent.class)
+                .filter(vs -> !(vs.getOld().isPresent()))
+                .subscribe(vs -> {
+                    String text = String.format("<@%d> присоединился к %s", vs.getCurrent().getUserId().asLong(),
+                            vs.getCurrent().getChannel().blockOptional().orElseThrow(NoSuchElementException::new).getName());
+
+                    voiceModLog.createEmbed(embedCreateSpec ->
+                            embedCreateSpec.setColor(Color.of(60, 170, 60))
+                                    .setAuthor(self.getUsername(), "", self.getAvatarUrl())
+                                    .setTitle("Информация:")
+                                    .setDescription(text)
+                                    .setTimestamp(Instant.now())
+                    ).block();
+                });
+
+        // server mute
+        client.getEventDispatcher().on(VoiceStateUpdateEvent.class)
+                .filter(vs -> vs.getOld().isPresent() &&
+                        (
+                                (!vs.getOld().get().isMuted() && vs.getCurrent().isMuted()) || (!vs.getOld().get().isDeaf() && vs.getCurrent().isDeaf())
+                        )
+                )
+                .subscribe(vs -> {
+                    String text = String.format("<@%d> получил серверный мут находясь в  %s",
+                            vs.getCurrent().getUserId().asLong(),
+                            vs.getCurrent().getChannel().blockOptional().orElseThrow(NoSuchElementException::new).getName());
+
+                    voiceModLog.createEmbed(embedCreateSpec ->
+                            embedCreateSpec.setColor(Color.of(255, 0, 0))
+                                    .setAuthor(self.getUsername(), "", self.getAvatarUrl())
+                                    .setDescription(text)
+                                    .setTitle("Информация:")
+                                    .setTimestamp(Instant.now())).block();
+                });
+
+        // unmute server
+        client.getEventDispatcher().on(VoiceStateUpdateEvent.class)
+                .filter(vs -> vs.getOld().isPresent() &&
+                        (
+                                (vs.getOld().get().isMuted() && !vs.getCurrent().isMuted()) || (vs.getOld().get().isDeaf() && !vs.getCurrent().isDeaf())
+                        )
+                )
+                .subscribe(vs -> {
+                    String text = String.format("с <@%d> был снят серверный мут в %s",
+                            vs.getCurrent().getUserId().asLong(),
+                            vs.getCurrent().getChannel().blockOptional().orElseThrow(NoSuchElementException::new).getName());
+
+                    voiceModLog.createEmbed(embedCreateSpec ->
+                            embedCreateSpec.setColor(Color.of(27, 17, 22))
+                                    .setAuthor(self.getUsername(), "", self.getAvatarUrl())
+                                    .setDescription(text)
+                                    .setTitle("Информация:")
+                                    .setTimestamp(Instant.now())).block();
+                });
+
+        // change channel
+        client.getEventDispatcher().on(VoiceStateUpdateEvent.class)
+                .filter(vs -> vs.getOld().isPresent() && vs.getCurrent().getChannelId().isPresent() &&
+                        vs.getOld().get().isMuted() == vs.getCurrent().isMuted() &&
+                        vs.getOld().get().isDeaf() == vs.getCurrent().isDeaf() &&
+                        vs.getOld().get().isSelfMuted() == vs.getCurrent().isSelfMuted() &&
+                        vs.getOld().get().isSelfDeaf() == vs.getCurrent().isSelfDeaf()
+                )
+                .subscribe(vs -> {
+                    String text = String.format("<@%d> переместился из %s в %s",
+                            vs.getCurrent().getUserId().asLong(),
+                            vs.getOld().get().getChannel().blockOptional().orElseThrow(NoSuchElementException::new).getName(),
+                            vs.getCurrent().getChannel().blockOptional().orElseThrow(NoSuchElementException::new).getName());
+
+                    voiceModLog.createEmbed(embedCreateSpec ->
+                            embedCreateSpec.setColor(Color.of(209, 226, 49))
+                                    .setAuthor(self.getUsername(), "", self.getAvatarUrl())
+                                    .setDescription(text)
+                                    .setTitle("Информация:")
+                                    .setTimestamp(Instant.now())
+                    ).block();
+                });
 
         client.onDisconnect().block();
     }
