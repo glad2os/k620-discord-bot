@@ -13,6 +13,7 @@ public class Config {
     public static final Snowflake CHANNEL_STAFF_CHANNEL_ID = Snowflake.of(722064195977216071L);
     public static final Snowflake MESSAGE_ACCEPT_ID = Snowflake.of(737014451093635092L);
     public static final Snowflake ROLE_LVL1_ID = Snowflake.of(736461622456877106L);
+    public static final Snowflake LOGS_VOICE = Snowflake.of(743042808570445844L);
 
     public static final List<Snowflake> IGNORE_VOICE_IDS = Arrays.asList(
             Snowflake.of(616984490719313930L), // Stream Limit

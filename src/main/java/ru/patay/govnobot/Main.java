@@ -160,7 +160,7 @@ public class Main {
 
         // ЛОГИРОВАНИЕ
 
-        MessageChannel voiceModLog = (MessageChannel) client.getChannelById(Snowflake.of(736914982221905992L)).blockOptional().orElseThrow(NoSuchElementException::new);
+        MessageChannel voiceModLog = (MessageChannel) client.getChannelById(LOGS_VOICE).blockOptional().orElseThrow(NoSuchElementException::new);
 
         // leave channel
         client.getEventDispatcher().on(VoiceStateUpdateEvent.class)
