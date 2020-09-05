@@ -7,8 +7,6 @@ import org.hibernate.cfg.Configuration;
 import ru.patay.govnobot.entities.Role;
 import ru.patay.govnobot.entities.User;
 
-import java.util.Optional;
-
 public class HibernateSessionFactoryUtil {
     private static SessionFactory sessionFactory;
 
@@ -16,7 +14,7 @@ public class HibernateSessionFactoryUtil {
     }
 
     public static SessionFactory getSessionFactory() {
-        if (sessionFactory == null  || sessionFactory.isClosed()) {
+        if (sessionFactory == null || sessionFactory.isClosed()) {
             try {
                 Configuration configuration = new Configuration()
                         .addAnnotatedClass(Role.class)
