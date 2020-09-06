@@ -3,6 +3,7 @@ package ru.patay.govnobot;
 import discord4j.common.util.Snowflake;
 import discord4j.core.DiscordClientBuilder;
 import discord4j.core.GatewayDiscordClient;
+import discord4j.core.event.domain.Event;
 import discord4j.core.event.domain.VoiceStateUpdateEvent;
 import discord4j.core.event.domain.lifecycle.ReadyEvent;
 import discord4j.core.event.domain.message.MessageCreateEvent;
@@ -57,9 +58,14 @@ public class Main {
         User self = client.getSelf().blockOptional().orElseThrow(NoSuchElementException::new);
         UserLogic.flushNotNull();
 
+        client.getEventDispatcher().on(Event.class)
+                .map(Object::getClass)
+                .map(Class::getSimpleName)
+                .subscribe(log::info);
+
         client.getEventDispatcher().on(ReadyEvent.class)
                 .subscribe(event -> {
-                    log.info("ReadyEvent.class");
+//                    log.info("ReadyEvent.class");
                     log.info("Logged in as {}#{}", self.getUsername(), self.getDiscriminator());
                     Guild guild = client.getGuildById(GUILD_ID).blockOptional().orElseThrow(NoSuchElementException::new);
                     long ms = System.currentTimeMillis();
@@ -88,7 +94,7 @@ public class Main {
         client.getEventDispatcher().on(MessageCreateEvent.class)
                 .filter(event -> !IGNORE_TEXT_IDS.contains(event.getMessage().getChannelId()))
                 .doOnNext(event -> {
-                    log.info("MessageCreateEvent.class");
+//                    log.info("MessageCreateEvent.class");
                     Member member = event.getMember().orElseThrow(NoSuchElementException::new);
                     ru.patay.govnobot.entities.User user = UserLogic.getById(member.getId());
                     user.incMessages();
@@ -108,7 +114,7 @@ public class Main {
                 .filter(message -> CHANNEL_BOT_ID.equals(message.getChannelId())
                         && message.getContent().startsWith("!addrole")
                         && !message.getAuthor().orElseThrow(NoSuchElementException::new).isBot())
-                .doOnNext(message -> log.info("MessageCreateEvent.class addrole"))
+//                .doOnNext(message -> log.info("MessageCreateEvent.class addrole"))
                 .doOnNext(addRole::exec)
                 .onErrorContinue((throwable, o) -> {
                     Message message = (Message) o;
@@ -123,7 +129,7 @@ public class Main {
                 .filter(message -> CHANNEL_BOT_ID.equals(message.getChannelId())
                         && message.getContent().startsWith("!delrole")
                         && !message.getAuthor().orElseThrow(NoSuchElementException::new).isBot())
-                .doOnNext(message -> log.info("MessageCreateEvent.class delrole"))
+//                .doOnNext(message -> log.info("MessageCreateEvent.class delrole"))
                 .doOnNext(delRole::exec)
                 .onErrorContinue((throwable, o) -> {
                     Message message = (Message) o;
@@ -138,7 +144,7 @@ public class Main {
                 .filter(message -> CHANNEL_STAFF_CHANNEL_ID.equals(message.getChannelId())
                         && message.getContent().startsWith("!xp"))
                 .subscribe(message -> {
-                    log.info("MessageCreateEvent.class xp");
+//                    log.info("MessageCreateEvent.class xp");
                     Set<Snowflake> userMentionIds = message.getUserMentionIds();
                     String text = userMentionIds.stream().map(UserLogic::getById).map(user ->
                             String.format("<@%d> Level: %d; Messages: %d; Time: %s", user.getId(), user.getLevel(), user.getMessages(), format(user.getTime())))
@@ -154,12 +160,12 @@ public class Main {
                 });
 
         client.getEventDispatcher().on(VoiceStateUpdateEvent.class)
-                .doOnNext(voiceStateUpdateEvent -> log.info("VoiceStateUpdateEvent.class"))
+//                .doOnNext(voiceStateUpdateEvent -> log.info("VoiceStateUpdateEvent.class"))
                 .subscribe(VoiceStateHandler::exec);
 
         client.getEventDispatcher().on(ReactionAddEvent.class)
                 .filter(event -> MESSAGE_ACCEPT_ID.equals(event.getMessageId()))
-                .doOnNext(reactionAddEvent -> log.info("ReactionAddEvent.class"))
+//                .doOnNext(reactionAddEvent -> log.info("ReactionAddEvent.class"))
                 .flatMap(event -> event.getUser().flatMap(user -> user.asMember(event.getGuildId().orElseThrow(NoSuchElementException::new))))
                 .flatMap(member -> member.addRole(ROLE_LVL1_ID))
                 .subscribe();
@@ -172,7 +178,7 @@ public class Main {
         client.getEventDispatcher().on(VoiceStateUpdateEvent.class)
                 .filter(vs -> !vs.getCurrent().getChannelId().isPresent())
                 .subscribe(voiceStateUpdateEvent -> {
-                    log.info("VoiceStateUpdateEvent.class leave");
+//                    log.info("VoiceStateUpdateEvent.class leave");
                     String text = String.format("<@%d> покинул комнату %s",
                             voiceStateUpdateEvent.getCurrent().getUserId().asLong(),
                             voiceStateUpdateEvent.getOld().get().getChannel().blockOptional().orElseThrow(NoSuchElementException::new).getName());
@@ -190,7 +196,7 @@ public class Main {
         client.getEventDispatcher().on(VoiceStateUpdateEvent.class)
                 .filter(vs -> !(vs.getOld().isPresent()))
                 .subscribe(vs -> {
-                    log.info("VoiceStateUpdateEvent.class connect");
+//                    log.info("VoiceStateUpdateEvent.class connect");
                     String text = String.format("<@%d> присоединился к %s", vs.getCurrent().getUserId().asLong(),
                             vs.getCurrent().getChannel().blockOptional().orElseThrow(NoSuchElementException::new).getName());
 
@@ -211,7 +217,7 @@ public class Main {
                         )
                 )
                 .subscribe(vs -> {
-                    log.info("VoiceStateUpdateEvent.class mute");
+//                    log.info("VoiceStateUpdateEvent.class mute");
                     String text = String.format("<@%d> получил серверный мут находясь в  %s",
                             vs.getCurrent().getUserId().asLong(),
                             vs.getCurrent().getChannel().blockOptional().orElseThrow(NoSuchElementException::new).getName());
@@ -232,7 +238,7 @@ public class Main {
                         )
                 )
                 .subscribe(vs -> {
-                    log.info("VoiceStateUpdateEvent.class unmute");
+//                    log.info("VoiceStateUpdateEvent.class unmute");
                     String text = String.format("с <@%d> был снят серверный мут в %s",
                             vs.getCurrent().getUserId().asLong(),
                             vs.getCurrent().getChannel().blockOptional().orElseThrow(NoSuchElementException::new).getName());
@@ -254,7 +260,7 @@ public class Main {
                         vs.getOld().get().isSelfDeaf() == vs.getCurrent().isSelfDeaf()
                 )
                 .subscribe(vs -> {
-                    log.info("VoiceStateUpdateEvent.class change");
+//                    log.info("VoiceStateUpdateEvent.class change");
                     String text = String.format("<@%d> переместился из %s в %s",
                             vs.getCurrent().getUserId().asLong(),
                             vs.getOld().get().getChannel().blockOptional().orElseThrow(NoSuchElementException::new).getName(),
