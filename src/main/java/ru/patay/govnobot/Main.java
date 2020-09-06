@@ -26,6 +26,8 @@ import ru.patay.govnobot.commands.DelRole;
 import ru.patay.govnobot.commands.VoiceStateHandler;
 import ru.patay.govnobot.dao.RoleDao;
 
+import java.io.FileWriter;
+import java.io.IOException;
 import java.time.Instant;
 import java.util.Date;
 import java.util.NoSuchElementException;
@@ -69,7 +71,15 @@ public class Main {
 
         AtomicLong lastUpdate = new AtomicLong();
         client.getEventDispatcher().on(PresenceUpdateEvent.class).subscribe(event -> lastUpdate.set(System.currentTimeMillis()));
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> log.info("Last Update: {}", new Date(lastUpdate.get()).toString())));
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            try {
+                FileWriter fw = new FileWriter("/root/lastUpdate.txt", false);
+                fw.write(new Date(lastUpdate.get()).toString());
+                fw.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }));
 
         client.getEventDispatcher().on(ReadyEvent.class)
                 .subscribe(event -> {
