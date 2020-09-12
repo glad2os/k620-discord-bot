@@ -8,11 +8,9 @@ import discord4j.core.event.domain.PresenceUpdateEvent;
 import discord4j.core.event.domain.VoiceStateUpdateEvent;
 import discord4j.core.event.domain.lifecycle.ReadyEvent;
 import discord4j.core.event.domain.message.MessageCreateEvent;
-import discord4j.core.event.domain.message.ReactionAddEvent;
 import discord4j.core.object.VoiceState;
 import discord4j.core.object.entity.Guild;
 import discord4j.core.object.entity.Member;
-import discord4j.core.object.entity.Message;
 import discord4j.core.object.entity.User;
 import discord4j.core.object.entity.channel.Channel;
 import discord4j.core.object.entity.channel.MessageChannel;
@@ -21,10 +19,7 @@ import discord4j.rest.util.Color;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import ru.patay.govnobot.business.logic.UserLogic;
-import ru.patay.govnobot.commands.AddRole;
-import ru.patay.govnobot.commands.DelRole;
 import ru.patay.govnobot.commands.VoiceStateHandler;
-import ru.patay.govnobot.dao.RoleDao;
 
 import java.io.FileWriter;
 import java.io.IOException;
@@ -53,11 +48,6 @@ public class Main {
     }
 
     public static void main(String[] args) {
-        RoleDao roleDao = new RoleDao();
-
-        AddRole addRole = new AddRole(roleDao);
-        DelRole delRole = new DelRole(roleDao);
-
         GatewayDiscordClient client = DiscordClientBuilder.create(System.getenv("TOKEN")).build().login().blockOptional().orElseThrow(NoSuchElementException::new);
         User self = client.getSelf().blockOptional().orElseThrow(NoSuchElementException::new);
         MessageChannel voiceModLog = (MessageChannel) client.getChannelById(LOGS_VOICE).blockOptional().orElseThrow(NoSuchElementException::new);
@@ -127,34 +117,6 @@ public class Main {
 
         client.getEventDispatcher().on(MessageCreateEvent.class)
                 .map(MessageCreateEvent::getMessage)
-                .filter(message -> CHANNEL_BOT_ID.equals(message.getChannelId())
-                        && message.getContent().startsWith("!addrole")
-                        && !message.getAuthor().orElseThrow(NoSuchElementException::new).isBot())
-                .doOnNext(addRole::exec)
-                .onErrorContinue((throwable, o) -> {
-                    Message message = (Message) o;
-                    MessageChannel channel = message.getChannel().blockOptional().orElseThrow(NoSuchElementException::new);
-                    String localizedMessage = throwable.getLocalizedMessage();
-                    channel.createMessage(localizedMessage).block(); // todo ???????
-                })
-                .subscribe();
-
-        client.getEventDispatcher().on(MessageCreateEvent.class)
-                .map(MessageCreateEvent::getMessage)
-                .filter(message -> CHANNEL_BOT_ID.equals(message.getChannelId())
-                        && message.getContent().startsWith("!delrole")
-                        && !message.getAuthor().orElseThrow(NoSuchElementException::new).isBot())
-                .doOnNext(delRole::exec)
-                .onErrorContinue((throwable, o) -> {
-                    Message message = (Message) o;
-                    MessageChannel channel = message.getChannel().blockOptional().orElseThrow(NoSuchElementException::new);
-                    String localizedMessage = throwable.getLocalizedMessage();
-                    channel.createMessage(localizedMessage).block();
-                })
-                .subscribe();
-
-        client.getEventDispatcher().on(MessageCreateEvent.class)
-                .map(MessageCreateEvent::getMessage)
                 .filter(message -> CHANNEL_STAFF_CHANNEL_ID.equals(message.getChannelId())
                         && message.getContent().startsWith("!xp"))
                 .flatMap(message -> message.getChannel().flatMap(mc -> mc.createEmbed(spec -> spec
@@ -169,12 +131,6 @@ public class Main {
 
         client.getEventDispatcher().on(VoiceStateUpdateEvent.class)
                 .subscribe(VoiceStateHandler::exec);
-
-        client.getEventDispatcher().on(ReactionAddEvent.class)
-                .filter(event -> MESSAGE_ACCEPT_ID.equals(event.getMessageId()))
-                .flatMap(event -> event.getUser().flatMap(user -> user.asMember(event.getGuildId().orElseThrow(NoSuchElementException::new))))
-                .flatMap(member -> member.addRole(ROLE_LVL1_ID))
-                .subscribe();
 
         /* Logging actions in voice channels for moderators */
 
