@@ -53,24 +53,6 @@ public class Main {
         MessageChannel voiceModLog = (MessageChannel) client.getChannelById(LOGS_VOICE).blockOptional().orElseThrow(NoSuchElementException::new);
         UserLogic.flushNotNull();
 
-        client.getEventDispatcher().on(Event.class)
-                .map(Object::getClass)
-                .filter(clazz -> clazz != PresenceUpdateEvent.class)
-                .map(Class::getSimpleName)
-                .subscribe(log::info);
-
-        AtomicLong lastUpdate = new AtomicLong();
-        client.getEventDispatcher().on(PresenceUpdateEvent.class).subscribe(event -> lastUpdate.set(System.currentTimeMillis()));
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            try {
-                FileWriter fw = new FileWriter("/root/lastUpdate.txt", false);
-                fw.write(new Date(lastUpdate.get()).toString());
-                fw.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }));
-
         client.getEventDispatcher().on(ReadyEvent.class)
                 .subscribe(event -> {
                     log.info("Logged in as {}#{}", self.getUsername(), self.getDiscriminator());
