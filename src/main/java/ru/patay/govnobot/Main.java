@@ -3,8 +3,6 @@ package ru.patay.govnobot;
 import discord4j.common.util.Snowflake;
 import discord4j.core.DiscordClientBuilder;
 import discord4j.core.GatewayDiscordClient;
-import discord4j.core.event.domain.Event;
-import discord4j.core.event.domain.PresenceUpdateEvent;
 import discord4j.core.event.domain.VoiceStateUpdateEvent;
 import discord4j.core.event.domain.lifecycle.ReadyEvent;
 import discord4j.core.event.domain.message.MessageCreateEvent;
@@ -21,12 +19,8 @@ import org.apache.logging.log4j.Logger;
 import ru.patay.govnobot.business.logic.UserLogic;
 import ru.patay.govnobot.commands.VoiceStateHandler;
 
-import java.io.FileWriter;
-import java.io.IOException;
 import java.time.Instant;
-import java.util.Date;
 import java.util.NoSuchElementException;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 import static ru.patay.govnobot.Config.*;
