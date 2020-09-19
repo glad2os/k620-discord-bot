@@ -98,7 +98,7 @@ public class Main {
                 .flatMap(message -> message.getChannel().flatMap(mc -> mc.createEmbed(spec -> spec
                         .setColor(Color.DARK_GRAY)
                         .setAuthor(self.getUsername(), "", self.getAvatarUrl())
-                        .setTitle("Информация:")
+                        .setTitle("XP")
                         .setDescription(message.getUserMentionIds().stream().map(UserLogic::getById).map(user ->
                                 String.format("<@%d> Level: %d; Messages: %d; Time: %s", user.getId(), user.getLevel(), user.getMessages(), format(user.getTime())))
                                 .collect(Collectors.joining("\n")))
@@ -107,81 +107,6 @@ public class Main {
 
         client.getEventDispatcher().on(VoiceStateUpdateEvent.class)
                 .subscribe(VoiceStateHandler::exec);
-
-        /* Logging actions in voice channels for moderators */
-
-        // Action: Leave from Channel
-        client.getEventDispatcher().on(VoiceStateUpdateEvent.class)
-                .filter(vs -> !vs.getCurrent().getChannelId().isPresent())
-                .flatMap(vs -> voiceModLog.createEmbed(embedCreateSpec -> embedCreateSpec
-                        .setColor(Color.of(121, 68, 59))
-                        .setAuthor(self.getUsername(), "", self.getAvatarUrl())
-                        .setTitle("Информация:")
-                        .setDescription(String.format("<@%d> покинул комнату %s",
-                                vs.getCurrent().getUserId().asLong(),
-                                vs.getOld().get().getChannel().blockOptional().orElseThrow(NoSuchElementException::new).getName()))
-                        .setTimestamp(Instant.now())))
-                .subscribe();
-
-        // Action: Connect to Channel
-        client.getEventDispatcher().on(VoiceStateUpdateEvent.class)
-                .filter(vs -> !(vs.getOld().isPresent()))
-                .flatMap(vs -> voiceModLog.createEmbed(embedCreateSpec -> embedCreateSpec
-                        .setColor(Color.of(60, 170, 60))
-                        .setAuthor(self.getUsername(), "", self.getAvatarUrl())
-                        .setTitle("Информация:")
-                        .setDescription(String.format("<@%d> присоединился к %s", vs.getCurrent().getUserId().asLong(),
-                                vs.getCurrent().getChannel().blockOptional().orElseThrow(NoSuchElementException::new).getName()))
-                        .setTimestamp(Instant.now())))
-                .subscribe();
-
-        // Action: Mute by Server
-        client.getEventDispatcher().on(VoiceStateUpdateEvent.class)
-                .filter(vs -> vs.getOld().isPresent() &&
-                        ((!vs.getOld().get().isMuted() && vs.getCurrent().isMuted()) ||
-                                (!vs.getOld().get().isDeaf() && vs.getCurrent().isDeaf())))
-                .flatMap(vs -> voiceModLog.createEmbed(embedCreateSpec -> embedCreateSpec
-                        .setColor(Color.of(255, 0, 0))
-                        .setAuthor(self.getUsername(), "", self.getAvatarUrl())
-                        .setDescription(String.format("<@%d> получил серверный мут находясь в  %s",
-                                vs.getCurrent().getUserId().asLong(),
-                                vs.getCurrent().getChannel().blockOptional().orElseThrow(NoSuchElementException::new).getName()))
-                        .setTitle("Информация:")
-                        .setTimestamp(Instant.now())))
-                .subscribe();
-
-        // Action: Unmute by Server
-        client.getEventDispatcher().on(VoiceStateUpdateEvent.class)
-                .filter(vs -> vs.getOld().isPresent() &&
-                        ((vs.getOld().get().isMuted() && !vs.getCurrent().isMuted()) ||
-                                (vs.getOld().get().isDeaf() && !vs.getCurrent().isDeaf())))
-                .flatMap(vs -> voiceModLog.createEmbed(embedCreateSpec -> embedCreateSpec
-                        .setColor(Color.of(27, 17, 22))
-                        .setAuthor(self.getUsername(), "", self.getAvatarUrl())
-                        .setDescription(String.format("с <@%d> был снят серверный мут в %s",
-                                vs.getCurrent().getUserId().asLong(),
-                                vs.getCurrent().getChannel().blockOptional().orElseThrow(NoSuchElementException::new).getName()))
-                        .setTitle("Информация:")
-                        .setTimestamp(Instant.now())))
-                .subscribe();
-
-        // Action: Change Channel
-        client.getEventDispatcher().on(VoiceStateUpdateEvent.class)
-                .filter(vs -> vs.getOld().isPresent() && vs.getCurrent().getChannelId().isPresent() &&
-                        vs.getOld().get().isMuted() == vs.getCurrent().isMuted() &&
-                        vs.getOld().get().isDeaf() == vs.getCurrent().isDeaf() &&
-                        vs.getOld().get().isSelfMuted() == vs.getCurrent().isSelfMuted() &&
-                        vs.getOld().get().isSelfDeaf() == vs.getCurrent().isSelfDeaf())
-                .flatMap(vs -> voiceModLog.createEmbed(embedCreateSpec -> embedCreateSpec
-                        .setColor(Color.of(209, 226, 49))
-                        .setAuthor(self.getUsername(), "", self.getAvatarUrl())
-                        .setDescription(String.format("<@%d> переместился из %s в %s",
-                                vs.getCurrent().getUserId().asLong(),
-                                vs.getOld().get().getChannel().blockOptional().orElseThrow(NoSuchElementException::new).getName(),
-                                vs.getCurrent().getChannel().blockOptional().orElseThrow(NoSuchElementException::new).getName()))
-                        .setTitle("Информация:")
-                        .setTimestamp(Instant.now())))
-                .subscribe();
 
         client.onDisconnect().block();
     }
